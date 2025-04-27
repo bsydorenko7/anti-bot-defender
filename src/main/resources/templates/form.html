@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Test Form</title>
+</head>
+<body>
+<h1>Submit Form</h1>
+<form action="/submit" method="post">
+    <input type="text" name="username" placeholder="Username" required/>
+
+    <!-- Honeypot field -->
+    <input type="text" name="hidden_field" style="display:none"/>
+
+    <button type="submit">Submit</button>
+</form>
+</body>
+</html>
