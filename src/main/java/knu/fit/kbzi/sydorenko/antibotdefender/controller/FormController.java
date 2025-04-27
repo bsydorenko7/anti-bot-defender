@@ -1,5 +1,7 @@
 package knu.fit.kbzi.sydorenko.antibotdefender.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,11 +18,11 @@ public class FormController {
 
     @PostMapping("/submit")
     @ResponseBody
-    public String handleFormSubmission(@RequestParam String username,
+    public ResponseEntity<String> handleFormSubmission(@RequestParam String username,
                                        @RequestParam(name = "hidden_field", required = false) String hiddenField) {
         if (hiddenField != null && !hiddenField.isBlank()) {
-            return "Bot detected! Submission rejected.";
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bot detected! Submission rejected.");
         }
-        return "Hello, " + username + "! Submission accepted.";
+        return ResponseEntity.ok("Hello, " + username + "! Submission accepted.");
     }
 }
