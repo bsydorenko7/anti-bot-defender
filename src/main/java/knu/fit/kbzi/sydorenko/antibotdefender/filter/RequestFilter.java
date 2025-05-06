@@ -4,8 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import knu.fit.kbzi.sydorenko.antibotdefender.entity.BlacklistedIp;
-import knu.fit.kbzi.sydorenko.antibotdefender.repository.BlacklistedIpRepository;
+import knu.fit.kbzi.sydorenko.antibotdefender.service.IpBlockService;
 import knu.fit.kbzi.sydorenko.antibotdefender.service.RateLimiterService;
 import knu.fit.kbzi.sydorenko.antibotdefender.util.RequestHeaderValidator;
 import lombok.RequiredArgsConstructor;
@@ -14,14 +13,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 
 @Slf4j
 @RequiredArgsConstructor
 @Component
 public class RequestFilter extends OncePerRequestFilter {
 
-    private final BlacklistedIpRepository blacklistedIpRepository;
+    private final IpBlockService ipBlockService;
     private final RequestHeaderValidator requestHeaderValidator;
     private final RateLimiterService rateLimiterService;
 
@@ -34,37 +32,20 @@ public class RequestFilter extends OncePerRequestFilter {
 
         log.info("Request to [{}] from IP [{}]", requestURI, ipAddress);
 
-        if (blacklistedIpRepository.existsByIpAddress(ipAddress)) {
-            log.warn("Blocked IP [{}] for request [{}]", ipAddress, requestURI);
+        if (ipBlockService.isBlacklisted(ipAddress)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Your IP address is blocked");
             return;
         }
 
         String blockingReason = requestHeaderValidator.validateHeaders(request);
         if (blockingReason != null) {
-            log.warn("Blocked IP [{}] due to [{}]", ipAddress, blockingReason);
-
-            blacklistedIpRepository.save(
-                    BlacklistedIp.builder()
-                            .ipAddress(ipAddress)
-                            .reason(blockingReason)
-                            .blockedAt(LocalDateTime.now())
-                            .build()
-            );
-
+            ipBlockService.blockIfNotExists(ipAddress, blockingReason);
             response.sendError(HttpServletResponse.SC_FORBIDDEN, blockingReason);
             return;
         }
 
         if (!rateLimiterService.isAllowed(ipAddress)) {
-            blacklistedIpRepository.save(
-                    BlacklistedIp.builder()
-                            .ipAddress(ipAddress)
-                            .reason("Rate limit exceeded")
-                            .blockedAt(LocalDateTime.now())
-                            .build()
-            );
-            log.warn("Blocked IP [{}] due to rate limit", ipAddress);
+            ipBlockService.blockIfNotExists(ipAddress, "Rate limit exceeded");
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Rate limit exceeded");
             return;
         }
@@ -74,9 +55,6 @@ public class RequestFilter extends OncePerRequestFilter {
 
     public static String getClientIpAddress(HttpServletRequest request) {
         String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader == null) {
-            return request.getRemoteAddr();
-        }
-        return xfHeader.split(",")[0];
+        return (xfHeader == null) ? request.getRemoteAddr() : xfHeader.split(",")[0];
     }
 }

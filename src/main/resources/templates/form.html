@@ -1,17 +1,39 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
-    <title>Test Form</title>
+    <meta charset="UTF-8">
+    <title>Anti-Bot Form</title>
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('form_created_at').value = Date.now();
+        });
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-<h1>Submit Form</h1>
-<form action="/submit" method="post">
-    <input type="text" name="username" placeholder="Username" required/>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<div class="bg-white shadow-md rounded-xl p-8 max-w-md w-full">
+    <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">User Verification Form</h2>
 
-    <!-- Honeypot field -->
-    <input type="text" name="hidden_field" style="display:none"/>
+    <form action="/submit" method="post" class="space-y-5">
+        <div>
+            <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+            <input type="text" id="username" name="username" required
+                   class="mt-1 w-full px-4 py-2 border rounded-md shadow-sm focus:ring focus:ring-blue-200 focus:outline-none border-gray-300" />
+        </div>
 
-    <button type="submit">Submit</button>
-</form>
+        <!-- Honeypot -->
+        <input type="text" name="hidden_field" style="display:none;" tabindex="-1" autocomplete="off" />
+
+        <!-- Timestamp -->
+        <input type="hidden" id="form_created_at" name="form_created_at" />
+
+        <div class="text-center">
+            <button type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-md shadow">
+                Submit
+            </button>
+        </div>
+    </form>
+</div>
 </body>
 </html>
