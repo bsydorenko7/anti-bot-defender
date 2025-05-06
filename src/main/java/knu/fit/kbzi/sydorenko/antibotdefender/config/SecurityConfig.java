@@ -13,8 +13,10 @@ public class SecurityConfig {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/h2-ui/**").permitAll()
                         .anyRequest().permitAll()
                 )
+                .headers(headers -> headers.frameOptions().disable())
                 .build();
     }
 }
