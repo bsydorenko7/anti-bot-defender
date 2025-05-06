@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import knu.fit.kbzi.sydorenko.antibotdefender.entity.BlacklistedIp;
 import knu.fit.kbzi.sydorenko.antibotdefender.repository.BlacklistedIpRepository;
-import knu.fit.kbzi.sydorenko.antibotdefender.util.AllowedUserAgents;
+import knu.fit.kbzi.sydorenko.antibotdefender.util.RequestHeaderValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 public class RequestFilter extends OncePerRequestFilter {
 
     private final BlacklistedIpRepository blacklistedIpRepository;
+    private final RequestHeaderValidator requestHeaderValidator;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -30,7 +31,7 @@ public class RequestFilter extends OncePerRequestFilter {
         String userAgent = request.getHeader("User-Agent");
         String requestURI = request.getRequestURI();
 
-        log.info("Request to [{}] from IP [{}] with User-Agent [{}]", requestURI, ipAddress, userAgent);
+        log.info("Request to [{}] from IP [{}]", requestURI, ipAddress);
 
         if (blacklistedIpRepository.existsByIpAddress(ipAddress)) {
             log.warn("Blocked IP [{}] for request [{}]", ipAddress, requestURI);
@@ -38,17 +39,19 @@ public class RequestFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (!AllowedUserAgents.isAllowed(userAgent)) {
+        String blockingReason = requestHeaderValidator.validateHeaders(request);
+        if (blockingReason != null) {
+            log.warn("Blocked IP [{}] due to [{}]", ipAddress, blockingReason);
+
             blacklistedIpRepository.save(
                     BlacklistedIp.builder()
                             .ipAddress(ipAddress)
-                            .reason("Suspicious User-Agent: " + userAgent)
+                            .reason(blockingReason)
                             .blockedAt(LocalDateTime.now())
                             .build()
             );
 
-            log.warn("Blocked User-Agent [{}] from IP [{}]", userAgent, ipAddress);
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Suspicious User-Agent detected");
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, blockingReason);
             return;
         }
 
