@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import knu.fit.kbzi.sydorenko.antibotdefender.entity.BlacklistedIp;
 import knu.fit.kbzi.sydorenko.antibotdefender.repository.BlacklistedIpRepository;
+import knu.fit.kbzi.sydorenko.antibotdefender.service.RateLimiterService;
 import knu.fit.kbzi.sydorenko.antibotdefender.util.RequestHeaderValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,13 +23,13 @@ public class RequestFilter extends OncePerRequestFilter {
 
     private final BlacklistedIpRepository blacklistedIpRepository;
     private final RequestHeaderValidator requestHeaderValidator;
+    private final RateLimiterService rateLimiterService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
         String ipAddress = getClientIpAddress(request);
-        String userAgent = request.getHeader("User-Agent");
         String requestURI = request.getRequestURI();
 
         log.info("Request to [{}] from IP [{}]", requestURI, ipAddress);
@@ -52,6 +53,19 @@ public class RequestFilter extends OncePerRequestFilter {
             );
 
             response.sendError(HttpServletResponse.SC_FORBIDDEN, blockingReason);
+            return;
+        }
+
+        if (!rateLimiterService.isAllowed(ipAddress)) {
+            blacklistedIpRepository.save(
+                    BlacklistedIp.builder()
+                            .ipAddress(ipAddress)
+                            .reason("Rate limit exceeded")
+                            .blockedAt(LocalDateTime.now())
+                            .build()
+            );
+            log.warn("Blocked IP [{}] due to rate limit", ipAddress);
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Rate limit exceeded");
             return;
         }
 
