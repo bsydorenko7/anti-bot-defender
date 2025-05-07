@@ -36,9 +36,7 @@ public class CaptchaController {
     ) {
         if (!captchaService.verify(captchaToken, ip)) {
             ipBlockService.blockIfNotExists(ip, reason);
-            return "redirect:/captcha-failed";
         }
-
         return "redirect:/form";
     }
 }
