@@ -33,24 +33,30 @@ public class RequestFilter extends OncePerRequestFilter {
         log.info("Request to [{}] from IP [{}]", requestURI, ipAddress);
 
         if (ipBlockService.isBlacklisted(ipAddress)) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Your IP address is blocked");
+            sendForbidden(response, "Your IP address is blocked");
             return;
         }
 
         String blockingReason = requestHeaderValidator.validateHeaders(request);
         if (blockingReason != null) {
             ipBlockService.blockIfNotExists(ipAddress, blockingReason);
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, blockingReason);
+            sendForbidden(response, blockingReason);
             return;
         }
 
         if (!rateLimiterService.isAllowed(ipAddress)) {
             ipBlockService.blockIfNotExists(ipAddress, "Rate limit exceeded");
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Rate limit exceeded");
+            sendForbidden(response, "Rate limit exceeded");
             return;
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void sendForbidden(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType("text/plain;charset=UTF-8");
+        response.getWriter().write(message);
     }
 
     public static String getClientIpAddress(HttpServletRequest request) {

@@ -1,32 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>Anti-Bot Form</title>
-    <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('form_created_at').value = Date.now();
-        });
-    </script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('form_created_at').value = Date.now();
+    });
+  </script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
 <div class="bg-white shadow-md rounded-xl p-8 max-w-md w-full">
     <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">User Verification Form</h2>
 
-    <form action="/submit" method="post" class="space-y-5">
+    <form id="userForm" action="/submit" method="post" class="space-y-5">
+        <!-- Error Box -->
+        <div id="errorBox" class="hidden bg-red-100 text-red-700 border border-red-300 px-4 py-3 rounded-md text-sm"></div>
+
+        <!-- Username Field -->
         <div>
             <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
             <input type="text" id="username" name="username" required
                    class="mt-1 w-full px-4 py-2 border rounded-md shadow-sm focus:ring focus:ring-blue-200 focus:outline-none border-gray-300" />
         </div>
 
-        <!-- Honeypot -->
+        <!-- Honeypot Field -->
         <input type="text" name="hidden_field" style="display:none;" tabindex="-1" autocomplete="off" />
 
-        <!-- Timestamp -->
+        <!-- Timestamp Field -->
         <input type="hidden" id="form_created_at" name="form_created_at" />
 
+        <!-- Submit Button -->
         <div class="text-center">
             <button type="submit"
                     class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-md shadow">
@@ -35,5 +40,53 @@
         </div>
     </form>
 </div>
+
+<script>
+  const behavior = {
+    hasMouseMove: false,
+    hasKeyPress: false,
+    headless: navigator.webdriver
+  };
+
+  window.addEventListener("mousemove", () => behavior.hasMouseMove = true);
+  window.addEventListener("keydown", () => behavior.hasKeyPress = true);
+
+  document.getElementById('userForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const form = e.target;
+
+    const behaviorResponse = await fetch('/behavior', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(behavior)
+    });
+
+    if (behaviorResponse.status === 403) {
+      const text = await behaviorResponse.text();
+      const errorBox = document.getElementById("errorBox");
+      errorBox.classList.remove("hidden");
+      errorBox.innerText = text;
+      return;
+    }
+
+    const formData = new FormData(form);
+    const res = await fetch(form.action, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (res.status === 403) {
+      const text = await res.text();
+      const errorBox = document.getElementById("errorBox");
+      errorBox.classList.remove("hidden");
+      errorBox.innerText = text;
+    } else {
+      form.removeEventListener('submit', arguments.callee);
+      form.submit();
+    }
+  });
+</script>
 </body>
 </html>

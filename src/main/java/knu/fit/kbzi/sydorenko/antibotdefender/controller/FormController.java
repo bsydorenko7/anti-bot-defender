@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.time.LocalDateTime;
-
 import static knu.fit.kbzi.sydorenko.antibotdefender.filter.RequestFilter.getClientIpAddress;
 
 @Controller
