@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -45,8 +47,7 @@ public class RequestFilter extends OncePerRequestFilter {
         }
 
         if (!rateLimiterService.isAllowed(ipAddress)) {
-            ipBlockService.blockIfNotExists(ipAddress, "Rate limit exceeded");
-            sendForbidden(response, "Rate limit exceeded");
+            redirectToCaptcha(response, ipAddress, "Rate limit exceeded");
             return;
         }
 
@@ -62,5 +63,11 @@ public class RequestFilter extends OncePerRequestFilter {
     public static String getClientIpAddress(HttpServletRequest request) {
         String xfHeader = request.getHeader("X-Forwarded-For");
         return (xfHeader == null) ? request.getRemoteAddr() : xfHeader.split(",")[0];
+    }
+
+    private void redirectToCaptcha(HttpServletResponse response, String ip, String reason) throws IOException {
+        String url = "/captcha?ip=" + URLEncoder.encode(ip, StandardCharsets.UTF_8)
+                + "&reason=" + URLEncoder.encode(reason, StandardCharsets.UTF_8);
+        response.sendRedirect(url);
     }
 }

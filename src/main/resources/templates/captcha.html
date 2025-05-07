@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Verify you're not a robot</title>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</head>
+<body>
+<h2>Please complete CAPTCHA</h2>
+<form action="/captcha/verify" method="post">
+    <input type="hidden" th:name="ip" th:value="${ip}">
+    <input type="hidden" th:name="reason" th:value="${reason}">
+    <div class="g-recaptcha" th:attr="data-sitekey=${siteKey}"></div>
+    <br/>
+    <button type="submit">Verify</button>
+</form>
+</body>
+</html>

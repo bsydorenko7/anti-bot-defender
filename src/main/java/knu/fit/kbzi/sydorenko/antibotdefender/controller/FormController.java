@@ -1,8 +1,6 @@
 package knu.fit.kbzi.sydorenko.antibotdefender.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
-import knu.fit.kbzi.sydorenko.antibotdefender.entity.BlacklistedIp;
-import knu.fit.kbzi.sydorenko.antibotdefender.repository.BlacklistedIpRepository;
 import knu.fit.kbzi.sydorenko.antibotdefender.service.IpBlockService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,6 +10,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import static knu.fit.kbzi.sydorenko.antibotdefender.filter.RequestFilter.getClientIpAddress;
 
@@ -48,9 +49,12 @@ public class FormController {
             long delta = now - formCreatedAt;
 
             if (delta < MIN_FILL_TIME_MS) {
-                ipBlockService.blockIfNotExists(ipAddress, "Form submitted too quickly (" + delta + " ms)");
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body("Form submitted too quickly. Potential bot.");
+                String reason = "Form submitted too quickly";
+                String captchaUrl = "/captcha?ip=" + URLEncoder.encode(ipAddress, StandardCharsets.UTF_8)
+                        + "&reason=" + URLEncoder.encode(reason, StandardCharsets.UTF_8);
+                return ResponseEntity.status(HttpStatus.FOUND)
+                        .header("Location", captchaUrl)
+                        .build();
             }
         }
 

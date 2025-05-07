@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class RateLimiterService {
 
-    private static final int MAX_REQUESTS = 5;
+    private static final int MAX_REQUESTS = 10;
     private static final long TIME_WINDOW_MILLIS = 10_000;
 
     private final Cache<String, Deque<Long>> requestCache = Caffeine.newBuilder()
