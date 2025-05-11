@@ -20,15 +20,12 @@ public class BehaviorController {
     @ResponseBody
     public ResponseEntity<Void> handleBehavior(@RequestBody BehaviorPayload payload, HttpServletRequest request) {
         String ip = getClientIpAddress(request);
-        log.info("here");
 
         if (payload.headless() || !payload.hasMouseMove() || !payload.hasKeyPress()) {
-            if (!ipBlockService.isBlacklisted(ip)) {
-                ipBlockService.blockIfNotExists(ip, "Suspicious behavior: " + payload);
-                return ResponseEntity.status(403).build();
-            }
-        }
+            ipBlockService.blockIfNotExists(ip, "Suspicious behavior: " + payload);
+            return ResponseEntity.status(403).build();
 
+        }
         return ResponseEntity.ok().build();
     }
 
