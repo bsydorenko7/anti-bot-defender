@@ -1,6 +1,7 @@
 package knu.fit.kbzi.sydorenko.antibotdefender.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import knu.fit.kbzi.sydorenko.antibotdefender.service.BehaviorValidationCache;
 import knu.fit.kbzi.sydorenko.antibotdefender.service.IpBlockService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,7 @@ import static knu.fit.kbzi.sydorenko.antibotdefender.filter.RequestFilter.getCli
 public class FormController {
 
     private final IpBlockService ipBlockService;
+    private final BehaviorValidationCache behaviorValidationCache;
 
     private static final long MIN_FILL_TIME_MS = 800;
 
@@ -49,13 +51,16 @@ public class FormController {
             long delta = now - formCreatedAt;
 
             if (delta < MIN_FILL_TIME_MS) {
-                String reason = "Form submitted too quickly";
-                String captchaUrl = "/captcha?ip=" + URLEncoder.encode(ipAddress, StandardCharsets.UTF_8)
-                        + "&reason=" + URLEncoder.encode(reason, StandardCharsets.UTF_8);
-                return ResponseEntity.status(HttpStatus.FOUND)
-                        .header("Location", captchaUrl)
-                        .build();
+                ipBlockService.blockIfNotExists(ipAddress, "Form submitted too quickly");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("Form submitted too quickly. Access denied.");
             }
+        }
+
+        if (!behaviorValidationCache.isRecentlyValidated(ipAddress)) {
+            ipBlockService.blockIfNotExists(ipAddress, "Missing behavior validation");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Missing behavior check. Access denied.");
         }
 
         return ResponseEntity.ok("Hello, " + username + "! Submission accepted.");

@@ -1,6 +1,7 @@
 package knu.fit.kbzi.sydorenko.antibotdefender.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import knu.fit.kbzi.sydorenko.antibotdefender.service.BehaviorValidationCache;
 import knu.fit.kbzi.sydorenko.antibotdefender.service.IpBlockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import static knu.fit.kbzi.sydorenko.antibotdefender.filter.RequestFilter.getCli
 public class BehaviorController {
 
     private final IpBlockService ipBlockService;
+    private final BehaviorValidationCache behaviorValidationCache;
 
     @PostMapping("/behavior")
     @ResponseBody
@@ -24,8 +26,8 @@ public class BehaviorController {
         if (payload.headless() || !payload.hasMouseMove() || !payload.hasKeyPress()) {
             ipBlockService.blockIfNotExists(ip, "Suspicious behavior: " + payload);
             return ResponseEntity.status(403).build();
-
         }
+        behaviorValidationCache.markValidated(ip);
         return ResponseEntity.ok().build();
     }
 
